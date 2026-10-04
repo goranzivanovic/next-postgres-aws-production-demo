@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Minimal production-oriented RDS PostgreSQL blueprint.
+Parameters:
+  DBUsername:
+    Type: String
+    Default: appuser
+Resources:
+  DemoDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Demo private subnets
+      SubnetIds: [subnet-REPLACE_A, subnet-REPLACE_B]
+  DemoDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: 20
+      StorageEncrypted: true
+      BackupRetentionPeriod: 7
+      PubliclyAccessible: false
+      DBSubnetGroupName: !Ref DemoDBSubnetGroup
+      MasterUsername: !Ref DBUsername
+      ManageMasterUserPassword: true
+      EnableCloudwatchLogsExports: [postgresql]
+Outputs:
+  DBEndpoint:
+    Value: !GetAtt DemoDB.Endpoint.Address

@@ -1,0 +1,1 @@
+import { NextResponse } from "next/server";import { healthcheck } from "../../../lib/db";export async function GET(){try{const db=await healthcheck();return NextResponse.json({ok:true,database:"reachable",at:db.now});}catch{return NextResponse.json({ok:false,database:"unreachable"},{status:503});}}

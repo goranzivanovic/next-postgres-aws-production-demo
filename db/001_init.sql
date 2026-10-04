@@ -1,0 +1,16 @@
+﻿CREATE EXTENSION IF NOT EXISTS pgcrypto;
+DO $$ BEGIN CREATE ROLE app_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TABLE IF NOT EXISTS tenants(id uuid PRIMARY KEY,name text NOT NULL);
+CREATE TABLE IF NOT EXISTS records(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,title text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS records_tenant_created_idx ON records(tenant_id,created_at);
+ALTER TABLE records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE records FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_records_select ON records;
+CREATE POLICY tenant_records_select ON records FOR SELECT TO app_runtime USING (tenant_id=current_setting('app.tenant_id',true)::uuid);
+DROP POLICY IF EXISTS tenant_records_insert ON records;
+CREATE POLICY tenant_records_insert ON records FOR INSERT TO app_runtime WITH CHECK (tenant_id=current_setting('app.tenant_id',true)::uuid);
+GRANT USAGE ON SCHEMA public TO app_runtime;
+GRANT SELECT,INSERT ON records TO app_runtime;
+INSERT INTO tenants(id,name) VALUES('11111111-1111-1111-1111-111111111111','Alpha'),('22222222-2222-2222-2222-222222222222','Beta') ON CONFLICT DO NOTHING;
+INSERT INTO records(tenant_id,title) SELECT '11111111-1111-1111-1111-111111111111','Alpha private record' WHERE NOT EXISTS(SELECT 1 FROM records WHERE title='Alpha private record');
+INSERT INTO records(tenant_id,title) SELECT '22222222-2222-2222-2222-222222222222','Beta private record' WHERE NOT EXISTS(SELECT 1 FROM records WHERE title='Beta private record');

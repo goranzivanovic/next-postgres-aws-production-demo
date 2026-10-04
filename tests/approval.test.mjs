@@ -1,0 +1,1 @@
+import test from "node:test";import assert from "node:assert/strict";test("approval gate requires explicit true",()=>{const allowed=b=>b?.approved===true;assert.equal(allowed({approved:true}),true);assert.equal(allowed({approved:false}),false);assert.equal(allowed({}),false);});
