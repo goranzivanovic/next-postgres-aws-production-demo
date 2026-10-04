@@ -1,0 +1,31 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: appdb
+          POSTGRES_USER: adminuser
+          POSTGRES_PASSWORD: adminpass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U adminuser -d appdb"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://adminuser:adminpass@localhost:5432/appdb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: psql "$DATABASE_URL" -f db/001_init.sql
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
